@@ -1,0 +1,440 @@
+%% LaTeX Beamer presentation template (requires beamer package)
+%% see http://bitbucket.org/rivanvx/beamer/wiki/Home
+%% idea contributed by H. Turgut Uyar
+%% template based on a template by Till Tantau
+%% this template is still evolving - it might differ in future releases!
+
+\documentclass{beamer}
+
+\mode<presentation>
+{
+\usetheme{Hannover}
+
+\setbeamercovered{transparent}
+} 
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+
+% font definitions, try \usepackage{ae} instead of the following
+% three lines if you don't like this look
+\usepackage{mathptmx}
+\usepackage[scaled=.90]{helvet}
+\usepackage{courier}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+
+
+\usepackage[T1]{fontenc}
+
+
+\title{Search-based Planning for Dual-arm Manipulation with Upright Orientation
+Constraints}
+
+%\subtitle{}
+
+% - Use the \inst{?} command only if the authors have different
+%   affiliation.
+%\author{F.~Author\inst{1} \and S.~Another\inst{2}}
+\author{Review by Igor Bogoslavskyi}
+
+% - Use the \inst command only if there are several affiliations.
+% - Keep it simple, no one is interested in your street address.
+\institute[Universities of]
+{
+Department Of Computer Science\\
+Albert Ludwigs Universitat Freiburg\\
+email: bogoslai@informatik.uni-freiburg.de}
+
+\date{13.07.2012}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}
+\frametitle{Outline}
+\tableofcontents
+% You might wish to add the option [pausesections]
+\end{frame}
+
+
+\section{Introduction}
+%slide 1
+\begin{frame}
+\frametitle{Motivation} 
+\begin{itemize}
+  \item In everyday life, people deal with many tasks, which in future can be
+  performed by a robot.
+  \item Some of them are hard with the use of only one hand.   	
+  \item Therefore, human would normally use both hands for such tasks.
+\end{itemize}
+\begin{center}
+	\includegraphics[width=4cm]{tray-1.jpg}
+	\includegraphics[width=4cm]{tray-2.jpg}
+\end{center}
+\end{frame}
+
+%slide 2
+\begin{frame}
+\frametitle{Motivation} 
+\begin{itemize}
+  \item These tasks involve carrying big and heavy objects as well as dealing
+  with objects that need the upright orientation constraint to be assured,
+  making it hard to operate such objects with only one hand.
+  \item Therefore the robot also may need two arms for these tasks. 	
+\end{itemize}
+\begin{figure}[]
+\centering
+\includegraphics[width=5cm]{image-000.jpg}
+\caption{PRII robot, that holds a tray with two wine glasses on it as example of typical situation addressed in the paper}
+\label{fig:PR2 with glasses}
+\end{figure}
+\end{frame}
+
+\section{Problem Description}
+\begin{frame}
+\frametitle{Problem Description}
+\begin{itemize}
+  \item The problem of manipulating the tray with upright orientation constraint
+  involves many steps such as detecting and tracking the tray, detecting the dual-arm grasps and motion planning.
+  \item Authors of the paper focus only on the motion planning part of it, i.e.
+  the computation of collision free path from start configuration of the robot to the goal one while maintaining the original roll and pitch of the object. 
+  \item It is assumed that the end-effectors are fairly constrained in moving
+  relative to each other, i.e. the grasp being executed by the two arms is fairly rigid.
+\end{itemize}
+\end{frame}
+
+\section{Algorithm}
+\begin{frame}
+\frametitle{Algorithm}
+\begin{itemize}
+  \item The motion planning algorithm operates by constructing and searching a motion-primitive based graph using pre-defined and runtime-generated motion primitives.
+  \item The task of the graph search is to find a path in the constructed graph, from the state that corresponds to the current configuration of the robot, to any state at which the object is at the desired (goal) location and orientation.
+  \item The algorithm consists of such components:
+  \begin{itemize}
+	\item Graph construction;
+	\item Cost function;
+	\item Heuristic function;
+	\item Search;
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\subsection{Graph Construction}
+\begin{frame}
+\frametitle{Graph Construction}
+\begin{itemize}
+  \item The graph is represented as $G=(S,E)$ where $S$ denotes the set of
+  states of the graph, and $E$ - the set of transitions between them.
+  \item In the earlier works of the authors of this paper, the configuration
+  space was constructed in joint space of the arm. This resulted in 7
+  dimensional graph as the arm had 7 DoF. Therefore for dual-armed robot this
+  approach would result in 14 dimentional graph.
+\end{itemize}
+\end{frame}
+ 
+\begin{frame}
+\frametitle{Reducing dimensionality\\ of the statespace}
+\begin{itemize}
+  \item The use of object's upright orientation constraint allows to reduce the
+  dimensionality of statespace so that each state of the graph is a 6-tuple:
+  $$
+  s=(x,y,z,\theta_{yaw},\theta_1,\theta_2)
+  $$
+  where $(x,y,z)$ describe the global position of the object,
+  $\theta_{yaw}$ is the object's yaw angle and $\theta_1, \theta_2$ are
+  the redundant joint positions.
+\begin{figure}[]
+\centering
+\includegraphics[width=6.5cm]{image-001.jpg}
+\label{fig:6-tuple}
+\end{figure}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Set of transitions}
+\begin{itemize}
+  \item The transitions in $E$ are comprised of a set of feasible motion
+  primitives that are defined as vectors of translational and yaw velocities of the object and the two redundant joint velocities.
+  \item The set of motion primitives includes 26 motions that translate the
+  object one cell in a 26-connected grid, two that rotate free angles in both directions and two that yaw the object in the world frame.
+
+\end{itemize}
+\begin{center}
+\includegraphics[width=3.3cm]{image-002.jpg}
+\includegraphics[width=3.2cm]{image-003.jpg}\\
+\includegraphics[width=4cm]{image-004.jpg}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Graph Construction}
+\begin{itemize}
+  \item The graph is constructed dynamically by the graph search as it expands
+  states.
+  \item Before new state can be added to the graph it must be checked for
+  feasibility. An inverse kinematics solver computes joint configurations that satisfy the state. If it finds a solution, then the arms are forward simulated and checked for collisions with each other and obstacles. 
+  \item If the inverse kinematics solver fails, then search over the redundant
+  joint for a valid solution is performed. If a solution exists, then an adaptive motion primitive is generated. 
+  \item It defers from the invalid one only in $\theta_1$ or $\theta_2$.
+\end{itemize}
+\end{frame}
+ 
+
+\subsection{Cost Function} 
+\begin{frame}
+\frametitle{Cost Function}
+\begin{itemize} 
+  \item The cost function is designed to minimize the path length of the end
+  effector while maximizing the distance between the manipulator and obstacles along the path.
+  \item Cost function is therefore described as follows:$$
+  c(s,s')=c_{cell}(s')+c_{action}(s,s')$$
+  \item $c_{action}$ is given by the user and represents the cost
+  of motion primitive.
+  \item $c_{cell}$ represents the cost to pay if the path is planned
+  through any particular cell.
+  It is higher if the cell is situated close to the obstacle.
+  
+\end{itemize}
+\end{frame}
+
+\subsection{Heuristic Function} 
+\begin{frame}
+\frametitle{Heuristic}
+\begin{itemize} 
+  \item The heuristic-based search algorithms depend on informative heuristics
+  to guide the search in promising directions towards the goal.
+  \item As the robot is supposed to work in cluttered environments, a heuristic
+  function that can deal with obstacles efficiently is needed.
+  \item In the previous works the authors used 3D Dijkstra search to find the
+  least-cost path from the position of inner sphere of the object at a given state to the object pose in the goal state.
+  \item Instead of modeling the object as a sphere when performing the 3D
+  Dijkstra search, it was modelled as a cylinder because the object is constrained from rolling or pitching. The radius of the cylinder
+  is the radius of the inner circle of the object and the height of the cylinder is the height
+of the object.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+ To compute the heuristic, we first inflate the obstacles on
+each $xy$-plane by the radius of inner circle of the object
+by iterating through the $z$-axis of the grid. Then on each
+call to the heuristic function, $h(x,y,z)$, we check if cells
+$(x,y,z),(x,y,z+1), ... ,(x,y,z+n)$ are collision free, where $n$ is
+the height of the cylinder in cells.
+\begin{figure}[]
+\centering
+\subfigure[$z=0$]{
+   \includegraphics[width=3cm]{image-005.jpg}
+   \label{fig:subfig1}
+}
+\subfigure[$z=0$ inflated]{
+   \includegraphics[width=3cm]{image-006.jpg}
+   \label{fig:subfig2}
+}
+\subfigure[$z = 0, z = 1, z = 2$, inflated]{
+   \includegraphics[width=3cm]{image-007.jpg}
+   \label{fig:subfig3}
+}
+\caption[Optional caption for list of figures]{The obstacles are shown in black and the inflated
+cells are red. The radius of the inner circle of the object on
+the $xy$ plane is 1 cell. The height of the object is 3 cells so
+3 $xy$ planes must be checked for collisions.}
+\label{fig:subfigureExample}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{No Precomputation}
+\begin{itemize}
+\item Heuristic for a given state is computed only when needed unlike in the
+previous approaches of the authors, where the heuristic was precomputed for the
+entire workspace before planning began. This pre-planning step required up to
+0.6 seconds. 
+\item Dijkstra search is initially run until it expands the start state. Then if
+the search ever encounters a state which has not yet been added to the Dijkstra search tree, the Dijkstra
+search is resumed until the state of interest is expanded. This way expanding
+all of the states in the environment is avoided.
+\end{itemize}
+\end{frame}
+
+
+\subsection{Search} 
+\begin{frame}
+\frametitle{Search}
+\begin{itemize} 
+  \item Given the complexity of the graph search algorithms such as A* are
+  infeasible to use.
+  \item Instead an anytime version of A* - Anytime Repairing A* (ARA*) is used.
+  \item This algorithm generates an initial, possibly suboptimal solution
+quickly and then concentrates on improving this solution. The algorithm guarantees
+completeness for a given graph $G$ and provides a bound $\epsilon$ on the
+suboptimality of the solution.
+\item ARA* speeds up the typical A* search by
+inflating the heuristic values by a desired inflation factor, $\epsilon$.
+An $\epsilon$ greater than 1.0 will produce a solution guaranteed to
+cost no more than $\epsilon$ times the cost of an optimal solution in
+the graph.
+\end{itemize}
+\end{frame}
+
+
+\section{Experimental Results} 
+\subsection{Experiments} 
+\begin{frame}
+\frametitle{Experiments}
+\begin{itemize} 
+  \item The authors conducted
+twelve experiments that were inspired by practical manipulation
+scenarios in four different cluttered environments
+with five different objects.
+  \item Start and goal poses for the objects were manually picked, 
+  by generating
+inverse kinematics (IK) solutions corresponding to them and
+checking that the solutions were collision free.
+\item All experiments were
+implemented in simulation and then on the PR2 robot
+itself.
+ 
+\end{itemize}
+\end{frame}
+
+\subsection{Objects and Environments} 
+\begin{frame}
+\frametitle{Environments and Objects}
+\begin{figure}[]
+\centering
+\subfigure[Environments]{
+   \includegraphics[width=0.47\textwidth]{image-008.jpg}
+   \label{fig:subfig4}
+}
+\subfigure[Objects simulated]{
+   \includegraphics[width=0.47\textwidth]{image-009.jpg}
+   \label{fig:subfig5}
+}
+\caption[Optional caption for list of figures]{In \subref{fig:subfig4} different
+environments are shown, such as stick around a pole, wood
+board in bookshelf, tray with wine glasses under a table, tray
+with wine glasses near wall and tray with a scotch glass in
+bookshelf.\newline In \subref{fig:subfig5} - actual objects used for
+simulation.}
+\label{fig:subfigureEnv}
+\end{figure} 
+\end{frame}
+
+\begin{frame}
+\frametitle{}
+\begin{figure}[]
+\centering
+\subfigure[wood board in bookshelf]{
+   \includegraphics[width=0.42\textwidth]{image-168.jpg}
+   \label{fig:subfig6}
+}
+\subfigure[tray with glasses near a wall]{
+   \includegraphics[width=0.42\textwidth]{image-169.jpg}
+   \label{fig:subfig7}
+}
+\subfigure[tray with glasses under a table]{
+   \includegraphics[width=0.42\textwidth]{image-170.jpg}
+   \label{fig:subfig8}
+}
+\subfigure[tray with a glass in bookshelf]{
+   \includegraphics[width=0.42\textwidth]{image-171.jpg}
+   \label{fig:subfig9}
+}
+
+\label{fig:subfigureExp}
+\end{figure} 
+\end{frame}
+
+
+\subsection{Results in Numbers} 
+\begin{frame}
+\begin{table}
+  \begin{tabular}{| c | c | c | c |}
+	\hline
+	Time until 	& Expands until &$\epsilon$	& Expands until \\
+	first sol.	& first sol. 	&	final	& final sol.	\\ \hline
+	0.31 		&182 			&3 			&8161			\\ \hline
+	0.15 		&76 			&3 			&7584			\\ \hline
+	0.33 		&182 			&3 			&6265			\\ \hline
+	2.01 		&544 			&5 			&5021			\\ \hline
+	1.07 		&379 			&4 			&7991			\\ \hline
+	0.98 		&432 			&4 			&6445			\\ \hline
+	14.888		&6773 			&100 		&6785			\\ \hline
+	0.56 		&31 			&3 			&6714			\\ \hline
+	0.57 		&34 			&3 			&5960			\\ \hline
+	1.06 		&322 			&5 			&4932			\\ \hline
+	0.14 		&62 			&3 			&7344			\\ \hline
+	0.13 		&68 			&3 			&6437			\\ \hline
+  \end{tabular}
+  \caption{The results of 12 simulated experiments. In all of the runs the
+  planner was initialized with an $ \epsilon = 100 $ and was given $15.0$
+  seconds to generate a more optimal solution if time permitted.}
+\end{table}
+\end{frame}
+
+
+\begin{frame}
+\begin{table}
+  \begin{tabular}{| c | c | c | c |}
+	\hline
+	Time until 	& Expands until &$\epsilon$	& Expands until \\
+	first sol.	& first sol. 	&	final	& final sol.	\\ \hline
+	0.39 		&31 			&2 			&7758			\\ \hline
+	0.32 		&43 			&2 			&6089			\\ \hline
+	0.4 		&29 			&2 			&5517			\\ \hline
+	0.79 		&145 			&3 			&5977			\\ \hline
+	0.98 		&208 			&3 			&6527			\\ \hline
+	0.28 		&26 			&2 			&6368			\\ \hline
+	2.16		&516 			&3 			&6290			\\ \hline
+	0.5 		&40 			&3 			&6454			\\ \hline
+	0.52 		&38 			&3 			&6027			\\ \hline
+	12.16 		&1996 			&4 			&2961			\\ \hline
+	0.07 		&38 			&3 			&7015			\\ \hline
+	0.12 		&68 			&3 			&6703			\\ \hline
+	
+  \end{tabular}
+  \caption{Twelve simulation results of heuristic with radius of
+the outer circle in the $xy$-plane of the object.}
+\end{table}
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}
+\frametitle<presentation>{Summary}
+
+\begin{itemize}
+  \item The authors presented a search-based motion planning algorithm
+for dual-arm object manipulation with an upright orientation
+constraint. 
+\item A compact representation
+of the problem and an informative heuristic that exploits
+the orientation constraint in creating a method that can
+efficiently plan dual-arm motions in less than two seconds 
+in over ninety percent of our runs was created.
+\end{itemize}
+
+
+\begin{itemize}
+  \item Convergence and optimality of the algorithm, though many time
+  referenced, were not proven.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle<presentation>{Thank you for attension!}
+\begin{itemize}
+  \item Questions? \\
+  \includegraphics[width=0.8 \textwidth]{question-mark.jpg}
+\end{itemize}
+\end{frame}
+
+\end{document}
